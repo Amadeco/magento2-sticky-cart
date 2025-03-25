@@ -1,0 +1,97 @@
+<?php
+/**
+ * @category  Amadeco
+ * @package   Amadeco_StickyCart
+ * @copyright Ilan Parmentier
+ */
+?>
+<?php
+use Magento\Catalog\Helper\Output;
+
+/** @var \Magento\Framework\Escaper $escaper */
+/** @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer */
+/** @var \Magento\Catalog\Block\Product\View $block */
+$product = $block->getProduct();
+
+/** @var \Amadeco\StickyCart\ViewModel\Config $viewModel */
+$viewModel = $block->getViewModel();
+?>
+<?php if ($viewModel->isEnabled()) : ?>
+	<div id="sticky-wrapper"
+		data-role="sticky-product"
+		aria-hidden="true">
+		<div class="container">
+			<div class="d-flex flex-row align-items-center">
+				<?php if ($viewModel->canShowImage()) : ?>
+				<?php $productImage = $block->getImage($product, 'sticky_product_thumbnail') ?>
+				<div class="sticky-image px-3 mb-0">
+					<?= $productImage->setTemplate('Amadeco_StickyCart::sticky.image.phtml')->toHtml() ?>
+			    </div>
+			    <?php endif ?>
+
+			    <?php if ($viewModel->canShowName()) : ?>
+			    <p class="sticky-name px-3 mb-0">
+				    <b><?= $this->helper(Output::class)->productAttribute($product, $product->getName(), 'name') ?></b>
+				</p>
+				<?php endif ?>
+
+				<?php if ($viewModel->canShowAvailability() || $viewModel->canshowSku()) : ?>
+				<div class="sticky-info-stock-sku px-3">
+					<?php if ($viewModel->canShowAvailability()) : ?>
+						<?php if ($product->isAvailable()) : ?>
+						<p class="stock available mb-0" title="<?= $escaper->escapeHtml(__('Availability')) ?>">
+							<span><?= $escaper->escapeHtml(__('In stock')) ?></span>
+						</p>
+						<?php else: ?>
+						<p class="stock unavailable mb-0" title="<?= $escaper->escapeHtml(__('Availability')) ?>">
+							<span><?= $escaper->escapeHtml(__('Out of stock')) ?></span>
+						</p>
+						<?php endif ?>
+					<?php endif ?>
+
+					<?php if ($viewModel->canShowSku()) : ?>
+					<p class="sticky-sku mb-0">
+						<small>
+							<b><?= $escaper->escapeHtml(__('SKU')) ?></b>
+							<span><?= $escaper->escapeHtml($product->getSku()) ?></span>
+						</small>
+					</p>
+					<?php endif ?>
+				</div>
+				<?php endif ?>
+
+				<?php if ($viewModel->canShowPrice()) : ?>
+				<div class="sticky-info-price px-3 ms-auto">
+					<div class="price-box"></div>
+				</div>
+				<?php endif ?>
+
+				<?php if ($viewModel->canShowCart($product)) : ?>
+				<p class="sticky-actions px-3 mb-0 with-js">
+					<button type="button"
+						id="product-addtocart-sticky"
+						class="action primary tocart"
+						tabindex="-1">
+						<span><?= $escaper->escapeHtml(__('Add to Cart')) ?></span>
+					</button>
+					<?= $block->getChildHtml('', true) ?>
+				</p>
+				<?php endif ?>
+			</div>
+		</div>
+	</div>
+	<?= /* @noEscape */ $secureRenderer->renderStyleAsTag(
+        "display:none",
+        'div#sticky-wrapper'
+    ) ?>
+	<script type="text/x-magento-init">
+	{
+		"#sticky-wrapper": {
+			"Amadeco_StickyCart/js/sticky-product": {
+				"showSummary": false,
+				"showPrice": <?= json_encode($viewModel->canShowPrice()) ?>
+			}
+		}
+	}
+	</script>
+<?php endif ?>

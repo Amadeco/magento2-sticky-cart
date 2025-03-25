@@ -1,0 +1,72 @@
+//
+// Sticky header navbar on product info (Amadeco_StickyCart)
+// _____________________________________________
+
+//
+//  Variables
+//  ---------------------------------------------
+
+@sticky-wrapper__border: false;
+@sticky-wrapper__background: @theme__background-color__primary;
+@sticky-wrapper__box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+@sticky-wrapper__padding: @indent__xs 0;
+
+@sticky-wrapper__summary__border-top: 1px solid @theme__color__secondary;
+
+//
+//  Common
+//  ---------------------------------------------
+
+& when (@media-common = true) {
+	#sticky-wrapper {
+		.lib-css(border, @sticky-wrapper__border);
+	    .lib-css(background, @sticky-wrapper__background);
+	    .lib-css(box-shadow, @sticky-wrapper__box-shadow);
+	    display: block;
+	    width: 100%;
+	    z-index: 99;
+	    top: 0;
+	    left: 0;
+		position: fixed;
+
+		.container {
+			.lib-css(padding, @sticky-wrapper__padding);
+		}
+
+		.cataloglabel img {
+			max-width: 70%;
+			height: auto;
+		}
+
+		.summary {
+			.lib-css(border-top, @sticky-wrapper__summary__border-top);
+
+			& > a {
+				display: inline-block;
+				padding: 2px 4px;
+				font-size: 90%;
+				text-decoration: underline;
+
+				&:hover {
+					text-decoration: none;
+				}
+			}
+		}
+	}
+
+	.sticky-image {
+		position: relative;
+	}
+}
+
+//
+//  Mobile + Tablet
+//  _____________________________________________
+
+.media-width(@extremum, @break) when (@extremum = 'max') and (@break = @screen__m) {
+
+	#sticky-wrapper {
+		display: none !important;
+	}
+
+}

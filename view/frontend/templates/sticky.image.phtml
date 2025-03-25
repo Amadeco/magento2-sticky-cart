@@ -1,0 +1,50 @@
+<?php
+/**
+ * @category  Amadeco
+ * @package   Amadeco_StickyCart
+ * @copyright Ilan Parmentier
+ */
+?>
+<?php
+/** @var $block \Magento\Catalog\Block\Product\Image */
+/** @var $escaper \Magento\Framework\Escaper */
+/** @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer */
+$width = (int)$block->getWidth();
+$height = (int)$block->getHeight();
+$paddingBottom = $block->getRatio() * 100;
+?>
+<span class="product-image-container product-image-container-sticky-<?= $escaper->escapeHtmlAttr($block->getProductId()) ?>">
+    <span class="product-image-wrapper">
+        <img class="<?= $escaper->escapeHtmlAttr($block->getClass()) ?>"
+            <?php foreach ($block->getCustomAttributes() as $name => $value): ?>
+                <?= $escaper->escapeHtmlAttr($name) ?>="<?= $escaper->escapeHtml($value) ?>"
+            <?php endforeach; ?>
+            src="<?= $escaper->escapeUrl($block->getImageUrl()) ?>"
+            <?php
+            //loading="lazy"
+            ?>
+            width="<?= $escaper->escapeHtmlAttr($block->getWidth()) ?>"
+            height="<?= $escaper->escapeHtmlAttr($block->getHeight()) ?>"
+            alt="<?= $escaper->escapeHtmlAttr($block->getLabel()) ?>"></span>
+</span>
+<?php
+$styles = <<<STYLE
+.product-image-container-sticky-{$block->getProductId()} {
+    width: {$width}px;
+    height: auto;
+    aspect-ratio: auto {$width} / {$height};
+}
+.product-image-container-sticky-{$block->getProductId()} span.product-image-wrapper {
+    height: 100%;
+    width: 100%;
+}
+@supports not (aspect-ratio: auto) {
+    .product-image-container-sticky-{$block->getProductId()} span.product-image-wrapper {
+        padding-bottom: {$paddingBottom}%;
+        height: auto;
+        width: auto;
+    }
+}
+STYLE;
+?>
+<?= /* @noEscape */ $secureRenderer->renderTag('style', [], $styles, false) ?>
