@@ -84,4 +84,4 @@ For issues or feature requests, please create an issue on our GitHub repository.
 
 ## License
 
-This module is licensed under the Open Software License 3.0 (OSL-3.0). See the [LICENSE](LICENSE) file for details.
+This module is licensed under the MIT License (MIT). See the [LICENSE](LICENSE) file for details.
