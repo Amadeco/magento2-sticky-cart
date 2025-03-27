@@ -8,8 +8,10 @@
     ],
     "authors": [
         {
-            "name": "Ilan Parmentier",
-            "email": "contact@amadeco.fr"
+            "name": "Ilan Parmentier @ Amadeco",
+            "email": "dev@amadeco.fr",
+            "homepage": "https://www.amadeco.fr",
+            "role": "Developer"
         }
     ],
     "require": {
