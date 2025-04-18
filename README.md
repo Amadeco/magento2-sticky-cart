@@ -2,7 +2,7 @@
 
 [![Latest Stable Version](https://img.shields.io/github/v/release/Amadeco/magento2-sticky-cart)](https://github.com/Amadeco/magento2-sticky-cart/releases)
 [![Magento 2](https://img.shields.io/badge/Magento-2.4.x-brightgreen.svg)](https://magento.com)
-[![PHP](https://img.shields.io/badge/PHP-8.1|8.2|8.3-blue.svg)](https://www.php.net)
+[![PHP](https://img.shields.io/badge/PHP-8.3+-blue.svg)](https://www.php.net)
 [![License](https://img.shields.io/github/license/Amadeco/magento2-sticky-cart)](https://github.com/Amadeco/magento2-sticky-cart/blob/main/LICENSE.txt)
 
 [SPONSOR: Amadeco](https://www.amadeco.fr)
@@ -72,7 +72,7 @@ This configuration is theme-dependent, so you'll need to add it to each theme wh
 ## Compatibility
 
 - Magento 2.4.x
-- PHP 8.1, 8.2, 8.3
+- PHP 8.3+
 
 ## Contributing
 
