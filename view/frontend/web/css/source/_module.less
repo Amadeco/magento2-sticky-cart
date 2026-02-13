@@ -7,7 +7,8 @@
 //  ---------------------------------------------
 
 @sticky-wrapper__border: 							false;
-@sticky-wrapper__background: 						@theme__background-color__primary;
+@sticky-wrapper__background-color: 					@theme__background-color__primary;
+@sticky-wrapper__background: 						false;
 @sticky-wrapper__box-shadow: 						0 .125rem .25rem rgba(0, 0, 0, .075);
 @sticky-wrapper__padding: 							@indent__xs 0;
 
@@ -21,6 +22,7 @@
 	
 	#sticky-wrapper {
 		.lib-css(border, @sticky-wrapper__border);
+	    .lib-css(background-color, @sticky-wrapper__background-color);
 	    .lib-css(background, @sticky-wrapper__background);
 	    .lib-css(box-shadow, @sticky-wrapper__box-shadow);
 	    display: block;
