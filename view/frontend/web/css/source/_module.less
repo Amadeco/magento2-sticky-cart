@@ -6,18 +6,19 @@
 //  Variables
 //  ---------------------------------------------
 
-@sticky-wrapper__border: false;
-@sticky-wrapper__background: @theme__background-color__primary;
-@sticky-wrapper__box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
-@sticky-wrapper__padding: @indent__xs 0;
+@sticky-wrapper__border: 							false;
+@sticky-wrapper__background: 						@theme__background-color__primary;
+@sticky-wrapper__box-shadow: 						0 .125rem .25rem rgba(0, 0, 0, .075);
+@sticky-wrapper__padding: 							@indent__xs 0;
 
-@sticky-wrapper__summary__border-top: 1px solid @theme__color__secondary;
+@sticky-wrapper__summary__border-top: 				1px solid @theme__color__secondary;
 
 //
 //  Common
 //  ---------------------------------------------
 
 & when (@media-common = true) {
+	
 	#sticky-wrapper {
 		.lib-css(border, @sticky-wrapper__border);
 	    .lib-css(background, @sticky-wrapper__background);
@@ -57,6 +58,7 @@
 	.sticky-image {
 		position: relative;
 	}
+	
 }
 
 //
