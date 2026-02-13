@@ -10,8 +10,8 @@ declare(strict_types=1);
 
 namespace Amadeco\StickyCart\ViewModel;
 
-use Amadeco\StickyCart\Helper\Data as StickyCartHelper;
 use Magento\Catalog\Api\Data\ProductInterface;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Serialize\SerializerInterface;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Magento\Store\Model\ScopeInterface;
@@ -20,18 +20,29 @@ use Magento\Store\Model\ScopeInterface;
  * StickyCart Configuration ViewModel.
  *
  * Serves as the bridge between Backend Configuration and Frontend Templates.
- * Implements ArgumentInterface to be injectable via layout XML.
+ * Now handles configuration retrieval directly, removing the need for a Helper.
  */
 class Config implements ArgumentInterface
 {
     /**
+     * Config paths for sticky cart settings.
+     */
+    private const string XML_PATH_ENABLED           = 'stickycart/general/enabled';
+    private const string XML_PATH_SHOW_IMAGE        = 'stickycart/general/show_image';
+    private const string XML_PATH_SHOW_NAME         = 'stickycart/general/show_name';
+    private const string XML_PATH_SHOW_PRICE        = 'stickycart/general/show_price';
+    private const string XML_PATH_SHOW_SKU          = 'stickycart/general/show_sku';
+    private const string XML_PATH_SHOW_AVAILABILITY = 'stickycart/general/show_availability';
+    private const string XML_PATH_SHOW_CART         = 'stickycart/general/show_cart';
+
+    /**
      * Config constructor.
      *
-     * @param StickyCartHelper $helper
+     * @param ScopeConfigInterface $scopeConfig
      * @param SerializerInterface $serializer
      */
     public function __construct(
-        private readonly StickyCartHelper $helper,
+        private readonly ScopeConfigInterface $scopeConfig,
         private readonly SerializerInterface $serializer
     ) {}
 
@@ -46,7 +57,7 @@ class Config implements ArgumentInterface
         string $scope = ScopeInterface::SCOPE_STORE,
         ?string $scopeCode = null
     ): bool {
-        return $this->helper->isEnabled($scope, $scopeCode);
+        return $this->isSetFlag(self::XML_PATH_ENABLED, $scope, $scopeCode);
     }
 
     /**
@@ -60,7 +71,7 @@ class Config implements ArgumentInterface
         string $scope = ScopeInterface::SCOPE_STORE,
         ?string $scopeCode = null
     ): bool {
-        return $this->helper->canShowImage($scope, $scopeCode);
+        return $this->isSetFlag(self::XML_PATH_SHOW_IMAGE, $scope, $scopeCode);
     }
 
     /**
@@ -74,7 +85,7 @@ class Config implements ArgumentInterface
         string $scope = ScopeInterface::SCOPE_STORE,
         ?string $scopeCode = null
     ): bool {
-        return $this->helper->canShowName($scope, $scopeCode);
+        return $this->isSetFlag(self::XML_PATH_SHOW_NAME, $scope, $scopeCode);
     }
 
     /**
@@ -88,7 +99,7 @@ class Config implements ArgumentInterface
         string $scope = ScopeInterface::SCOPE_STORE,
         ?string $scopeCode = null
     ): bool {
-        return $this->helper->canShowPrice($scope, $scopeCode);
+        return $this->isSetFlag(self::XML_PATH_SHOW_PRICE, $scope, $scopeCode);
     }
 
     /**
@@ -102,7 +113,7 @@ class Config implements ArgumentInterface
         string $scope = ScopeInterface::SCOPE_STORE,
         ?string $scopeCode = null
     ): bool {
-        return $this->helper->canShowSku($scope, $scopeCode);
+        return $this->isSetFlag(self::XML_PATH_SHOW_SKU, $scope, $scopeCode);
     }
 
     /**
@@ -116,7 +127,7 @@ class Config implements ArgumentInterface
         string $scope = ScopeInterface::SCOPE_STORE,
         ?string $scopeCode = null
     ): bool {
-        return $this->helper->canShowAvailability($scope, $scopeCode);
+        return $this->isSetFlag(self::XML_PATH_SHOW_AVAILABILITY, $scope, $scopeCode);
     }
 
     /**
@@ -132,6 +143,22 @@ class Config implements ArgumentInterface
         string $scope = ScopeInterface::SCOPE_STORE,
         ?string $scopeCode = null
     ): bool {
-        return $this->helper->canShowCart($product, $scope, $scopeCode);
+        // Strict check for saleable capability
+        $isSaleable = method_exists($product, 'isSaleable') ? $product->isSaleable() : false;
+
+        return $isSaleable && $this->isSetFlag(self::XML_PATH_SHOW_CART, $scope, $scopeCode);
+    }
+
+    /**
+     * Internal wrapper for flag retrieval.
+     *
+     * @param string $path
+     * @param string $scopeType
+     * @param string|null $scopeCode
+     * @return bool
+     */
+    private function isSetFlag(string $path, string $scopeType, ?string $scopeCode): bool
+    {
+        return $this->scopeConfig->isSetFlag($path, $scopeType, $scopeCode);
     }
 }
