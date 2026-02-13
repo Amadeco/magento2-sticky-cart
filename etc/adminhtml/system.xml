@@ -56,7 +56,7 @@
                     </depends>
                 </field>
                 
-                <field id="show_availability" translate="label" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="show_availability" translate="label" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                     <label>Show Product Availability</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <depends>
