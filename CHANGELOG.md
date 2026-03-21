@@ -4,7 +4,7 @@ All notable changes to the `Amadeco_StickyCart` Magento 2 module will be documen
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Versioning.
 
-## [Unreleased / 1.1.0] - 2026-03-21
+## [1.2.0] - 2026-03-21
 
 ### 🚀 Performance & UX Optimizations
 * **IntersectionObserver Integration:** Replaced the expensive `window.scroll` event listener with a native `IntersectionObserver`. The widget now uses zero CPU while scrolling and precisely triggers visibility the exact millisecond the original "Add to Cart" button leaves the viewport.
@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
-## [1.0.0] - Initial Release
+## Initial Release
 
 ### Added
 * **Sticky Header Component:** Added a sticky product information bar that appears when users scroll down the product page to improve Add to Cart conversion rates.
