@@ -1,265 +1,327 @@
 /**
  * Amadeco StickyCart JavaScript component
  *
- * @category  Amadeco
- * @package   Amadeco_StickyCart
- * @copyright Ilan Parmentier
+ * @category    Amadeco
+ * @package     Amadeco_StickyCart
+ * @copyright   Copyright (c) Amadeco
  */
 define([
     'jquery',
     'underscore',
-    'jquery-ui-modules/widget',
-], function($, _) {
+    'jquery-ui-modules/widget'
+], function ($, _) {
     'use strict';
 
     $.widget('amadeco.stickycart', {
         /**
-         * Widget options
+         * Default widget options.
          * @type {Object}
          */
         options: {
-            /**
-             * Selector for sticky product container
-             * @type {String}
-             */
+            /** @type {String} Selector for the sticky product container. */
             container: '[data-role="sticky-product"]',
-
-            /**
-             * Selector for main add to cart button
-             * @type {String}
-             */
-            addToCartBtn: "#product-addtocart-button",
-
-            /**
-             * Selector for elements after which the sticky cart should appear
-             * @type {String}
-             */
+            /** @type {String} Selector for the main add to cart button. */
+            addToCartBtn: '#product-addtocart-button',
+            /** @type {String} Selector for elements after which the sticky cart should appear. */
             stickyAfter: '.global.demo, .global.noscript',
-
-            /**
-             * Whether to show price in sticky cart
-             * @type {Boolean}
-             */
+            /** @type {String} Selector for the product tabs container. */
+            tabListSelector: '.product.info.detailed[role=tablist]',
+            /** @type {String} Selector for individual tab switches. */
+            tabSwitchSelector: '[data-role=switch]',
+            /** @type {String} Selector for the original product price container on the page. */
+            originalPriceSelector: '.product-info-price',
+            /** @type {String} Selector for the specific price box element to be synchronized. */
+            priceBoxSelector: '.price-box',
+            /** @type {Boolean} Flag to determine if the price should be synchronized. */
             showPrice: false,
-
-            /**
-             * Whether to show product tab summary in sticky cart
-             * @type {Boolean}
-             */
+            /** @type {Boolean} Flag to determine if the product summary tabs should be shown. */
             showSummary: false,
-
-            /**
-             * Scroll offset (in pixels) after which sticky cart appears
-             * @type {Number}
-             */
+            /** @type {Number} Scroll offset threshold in pixels to activate the sticky cart (Fallback for older browsers). */
             offset: 500,
-
-            /**
-             * Top margin for the sticky cart
-             * @type {Number}
-             */
-            marginTop: 0
+            /** @type {Number} Base top margin for the sticky cart in pixels. */
+            marginTop: 0,
+            /** @type {String} CSS class added to the container when activated for hardware-accelerated transitions. */
+            activeClass: 'is-sticky'
         },
 
         /**
-         * Widget creation
-         * Initialize sticky cart widget and bind events
+         * Widget initialization lifecycle phase.
+         * Caches DOM selectors, pre-calculates layout, and sets up high-performance observers.
          *
          * @private
+         * @return {void}
          */
-        _create: function() {
-            this.marginTop = (this.element.outerWidth(true) - this.element.outerWidth());
+        _create: function () {
             this.$addToCartBtn = $(this.options.addToCartBtn);
             this.$stickyAfter = $(this.options.stickyAfter);
             this.$stickyButton = this.element.find('button');
-
-            this._bindEvents();
-            this._bindAddToCartClick();
+            
+            this.$originalPriceWrapper = $(this.options.originalPriceSelector).find(this.options.priceBoxSelector);
+            this.$stickyPriceWrapper = this.element.find(this.options.priceBoxSelector);
+            
+            this.isActive = false;
+            this.buttonObserver = null;
+            this.visibilityObserver = null;
+            this.$summaryContainer = null;
+            
+            this._calculateLayout();
 
             if (this.options.showSummary) {
                 this._createSummary();
             }
-        },
 
-        /**
-         * Bind scroll and resize events
-         * Uses throttle to improve performance
-         *
-         * @private
-         */
-        _bindEvents: function() {
-            var widget = this,
-                paused = false;
-
-            $(window).on('scroll.stickyCart resize.stickyCart', _.throttle(function() {
-                var scrollTop = $(window).scrollTop();
-
-                if (widget.options.offset < scrollTop) {
-                    if (!paused) {
-                        paused = true;
-                        widget.activate();
-                    }
-                } else {
-                    if (paused) {
-                        paused = false;
-                        widget.deactivate();
-                    }
-                }
-            }, 200));
-        },
-
-        /**
-         * Bind click event to sticky cart button
-         * Triggers click on the main add to cart button
-         *
-         * @private
-         */
-        _bindAddToCartClick: function() {
-            var widget = this;
-
-            this.$stickyButton.on('click.stickyCart', function() {
-                widget.$addToCartBtn.trigger('click');
-            });
-        },
-
-        /**
-         * Activate sticky cart
-         * Shows sticky cart and syncs with original add to cart button
-         *
-         * @public
-         */
-        activate: function() {
-            // Handle price display if enabled
             if (this.options.showPrice) {
-                this._syncPrice();
+                this._initPriceSync();
             }
 
-            // Set margin based on elements that should be above the sticky cart
-            if (this.$stickyAfter.length) {
-                this.element.css('margin-top', this.marginTop + this.$stickyAfter.outerHeight(false));
-            }
-
-            // Observe changes to the original add to cart button
             this._observeAddToCartButton();
-
-            // Show the sticky cart
-            this.element.prop('aria-hidden', false).show();
+            this._bindEvents();
+            this._initIntersectionObserver();
         },
 
         /**
-         * Synchronize price display between main product and sticky cart
+         * Initializes the IntersectionObserver for 0-CPU layout monitoring.
+         * Triggers the sticky cart visibility exactly when the original button leaves the viewport.
+         * Gracefully falls back to scroll events utilizing the offset option for older browsers.
          *
          * @private
+         * @return {void}
          */
-        _syncPrice: function() {
-            var $priceBox = $('.product-info-price').find('.price-box'),
-                $priceBoxWidget = this.element.find('.price-box');
+        _initIntersectionObserver: function () {
+            var self = this;
 
-            $priceBox.children().each(function() {
-                $(this).parent().append($(this).clone());
-                $priceBoxWidget.append($(this).detach());
+            if (!this.$addToCartBtn.length || typeof window.IntersectionObserver === 'undefined') {
+                this._on(this.window, {
+                    'scroll': _.throttle(function () {
+                        var scrollTop = self.window.scrollTop();
+
+                        // Use the configured option instead of a hardcoded value
+                        if (scrollTop > self.options.offset) {
+                            self.activate();
+                        } else {
+                            self.deactivate();
+                        }
+                    }, 100)
+                });
+
+                return;
+            }
+
+            this.visibilityObserver = new IntersectionObserver(function (entries) {
+                var entry = entries[0];
+                
+                if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
+                    self.activate();
+                } else {
+                    self.deactivate();
+                }
+            }, {
+                root: null,
+                threshold: 0
+            });
+
+            this.visibilityObserver.observe(this.$addToCartBtn[0]);
+        },
+
+        /**
+         * Safely clones the price HTML without detaching the live Magento widgets.
+         * Listens to Magento's native `updatePrice` event to synchronize swatch and custom option changes.
+         *
+         * @private
+         * @return {void}
+         */
+        _initPriceSync: function () {
+            if (!this.$originalPriceWrapper.length || !this.$stickyPriceWrapper.length) {
+                return;
+            }
+
+            // Initial clone
+            this._clonePriceHtml();
+
+            // PERFECTED: Using native _on() for automatic namespacing and garbage collection!
+            this._on(this.$originalPriceWrapper, {
+                'updatePrice': '_handlePriceUpdate'
             });
         },
 
         /**
-         * Observe changes to add to cart button to sync with sticky button
-         * Uses MutationObserver to watch for attribute changes
+         * Handler for Magento's native price update event.
+         * Uses requestAnimationFrame polyfill to ensure 60fps rendering without jank.
          *
          * @private
+         * @return {void}
          */
-        _observeAddToCartButton: function() {
-            var widget = this;
+        _handlePriceUpdate: function () {
+            // Polyfill: Use native rAF, vendor prefixes, or fallback to 60fps setTimeout
+            var requestFrame = window.requestAnimationFrame || 
+                               window.webkitRequestAnimationFrame || 
+                               window.mozRequestAnimationFrame || 
+                               function (callback) { window.setTimeout(callback, 1000 / 60); };
 
-            if (this.$addToCartBtn.length && !this.observer) {
-                this.observer = new MutationObserver(function() {
-                    widget.$stickyButton
-                        .html(widget.$addToCartBtn.html())
-                        .attr('class', widget.$addToCartBtn.attr('class'));
+            requestFrame(function () {
+                this._clonePriceHtml();
+            }.bind(this)); // Safely bind 'this' to the widget instance inside the frame request
+        },
+
+        /**
+         * Clones the price HTML and sanitizes ID attributes to maintain strict DOM validation.
+         *
+         * @private
+         * @return {void}
+         */
+        _clonePriceHtml: function () {
+            var safeHtml = String(this.$originalPriceWrapper.html()).replace(/id="[^"]*"/g, '');
+
+            this.$stickyPriceWrapper.html(safeHtml);
+        },
+
+        /**
+         * Calculates required dynamic margins based on elements situated above the cart.
+         *
+         * @private
+         * @return {void}
+         */
+        _calculateLayout: function () {
+            var marginOffset = this.options.marginTop + (this.element.outerHeight(true) - this.element.outerHeight());
+
+            if (this.$stickyAfter.length) {
+                marginOffset += this.$stickyAfter.outerHeight(false) || 0;
+            }
+
+            this.element.css('margin-top', marginOffset);
+        },
+
+        /**
+         * Binds resize and click events using the native jQuery UI _on() method.
+         *
+         * @private
+         * @return {void}
+         */
+        _bindEvents: function () {
+            this._on(this.window, {
+                'resize': _.throttle(this._calculateLayout, 100)
+            });
+
+            this._on(this.$stickyButton, {
+                'click': '_handleAddToCartClick'
+            });
+        },
+
+        /**
+         * Handles the click event on the sticky "Add to Cart" button.
+         *
+         * @param {jQuery.Event} event - The jQuery click event object.
+         * @private
+         * @return {void}
+         */
+        _handleAddToCartClick: function (event) {
+            event.preventDefault();
+            this.$addToCartBtn.trigger('click');
+        },
+
+        /**
+         * Observes DOM mutations on the original "Add to Cart" button.
+         * Synchronizes CSS classes, HTML content, and disabled states.
+         *
+         * @private
+         * @return {void}
+         */
+        _observeAddToCartButton: function () {
+            var self = this;
+
+            if (this.$addToCartBtn.length && !this.buttonObserver) {
+                this.buttonObserver = new MutationObserver(function () {
+                    self.$stickyButton
+                        .html(self.$addToCartBtn.html())
+                        .prop('disabled', self.$addToCartBtn.prop('disabled'))
+                        .attr('class', self.$addToCartBtn.attr('class'));
                 });
 
-                this.observer.observe(this.$addToCartBtn[0], {
-                    attributes: true
+                this.buttonObserver.observe(this.$addToCartBtn[0], {
+                    attributes: true,
+                    childList: true,
+                    subtree: true,
+                    attributeFilter: ['class', 'disabled']
                 });
             }
         },
 
         /**
-         * Deactivate sticky cart
-         * Hides sticky cart and restores price elements if needed
+         * Activates the sticky cart visibility via CSS classes.
          *
          * @public
+         * @return {void}
          */
-        deactivate: function() {
-            // Handle price display if enabled
-            if (this.options.showPrice) {
-                this._restorePrice();
-            }
-
-            // Disconnect observer if it exists
-            if (this.observer) {
-                this.observer.disconnect();
-                this.observer = null;
-            }
-
-            // Hide the sticky cart
-            this.element.prop('aria-hidden', true).hide();
+        activate: function () {
+            this.isActive = true;
+            this.element
+                .addClass(this.options.activeClass)
+                .prop('aria-hidden', false);
         },
 
         /**
-         * Restore price elements to their original location
+         * Deactivates the sticky cart visibility via CSS classes.
          *
-         * @private
+         * @public
+         * @return {void}
          */
-        _restorePrice: function() {
-            var $priceBox = $('.product-info-price').find('.price-box');
-            $priceBox.children().remove();
-
-            this.element.find('.price-box').children().each(function() {
-                $priceBox.first().append($(this).detach());
-            });
+        deactivate: function () {
+            this.isActive = false;
+            this.element
+                .removeClass(this.options.activeClass)
+                .prop('aria-hidden', true);
         },
 
         /**
-         * Create product tabs summary in sticky cart
+         * Creates the product tabs summary in the sticky cart.
+         * Strips ID attributes from cloned HTML to prevent DOM duplicates.
          *
          * @private
+         * @return {void}
          */
-        _createSummary: function() {
-            var $tablist = $('.product.info.detailed[role=tablist]');
+        _createSummary: function () {
+            var $tablist = $(this.options.tabListSelector);
 
-            if ($tablist.length) {
-                var $summary = $('<div />', {'class': 'summary'});
-
-                $('[data-role=switch]').each(function() {
-                    var $anchor = $('<a />', {'href': $(this).prop('href')})
-                        .html($(this).html())
-                        .appendTo($summary);
-                });
-
-                this.element.children('.container').after($summary);
+            if (!$tablist.length) {
+                return;
             }
+
+            this.$summaryContainer = $('<div />', { 'class': 'summary' });
+
+            $tablist.find(this.options.tabSwitchSelector).each(function (index, element) {
+                var $element = $(element),
+                    safeHtml = String($element.html()).replace(/id="[^"]*"/g, ''),
+                    $anchor = $('<a />', { 'href': $element.prop('href') }).html(safeHtml);
+                
+                this.$summaryContainer.append($anchor);
+            }.bind(this));
+
+            this.element.children('.container').after(this.$summaryContainer);
         },
 
         /**
-         * Clean up resources when widget is destroyed
+         * Widget destruction lifecycle phase.
+         * Cleans up dynamically injected DOM elements and disconnects all observers.
          *
          * @private
+         * @return {void}
          */
-        _destroy: function() {
-            // Remove event handlers
-            $(window).off('scroll.stickyCart resize.stickyCart');
-            this.$stickyButton.off('click.stickyCart');
-
-            // Disconnect observer if it exists
-            if (this.observer) {
-                this.observer.disconnect();
-                this.observer = null;
+        _destroy: function () {
+            if (this.buttonObserver) {
+                this.buttonObserver.disconnect();
+                this.buttonObserver = null;
             }
 
-            // Restore price if needed
-            if (this.options.showPrice && this.element.is(':visible')) {
-                this._restorePrice();
+            if (this.visibilityObserver) {
+                this.visibilityObserver.disconnect();
+                this.visibilityObserver = null;
             }
+
+            if (this.$summaryContainer) {
+                this.$summaryContainer.remove();
+            }
+
+            this._super();
         }
     });
 
